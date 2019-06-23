@@ -4,7 +4,7 @@
 		<meta charset="utf-8">
 		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>爬蟲程式</title>
+		<title>EZ Crawler</title>
 		
 		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
 		
@@ -12,6 +12,7 @@
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
 		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
 		
+		<script src="crawler.js"></script>
 		<style>
             * {
                 font-family:微軟正黑體;
@@ -59,79 +60,29 @@
 				</thead>
 				<tbody>
 <?php
-	$url = "https://www.worldometers.info/world-population/population-by-country/";
-	
-	$host = 'localhost';
-	$dbuser = 'root';
-	$dbpw = '';
-	$dbname = 'crawler_db';
-	
-	$conn = mysqli_connect($host, $dbuser, $dbpw, $dbname);
-	
+	require_once('crawler_db_settings.php');
+
 	if($conn) {
 		$select_sql = "SELECT * FROM `populations`";
 		$quary_result = mysqli_query($conn, $select_sql);
 		
-		if(mysqli_num_rows($quary_result) > 0) {
-			$truncate_sql = 'TRUNCATE populations';
-			$result = mysqli_query($conn, $truncate_sql);
+        if(mysqli_num_rows($quary_result) > 0){
+            for ($i = 0; $i < mysqli_num_rows($quary_result); $i++){
+                $record = mysqli_fetch_row($quary_result);
+                echo "<tr>";
+                echo "<th scope='row'>" . $record[0] . "</th>";
+                echo "<td>" . $record[1] . "</td>";
+                echo "<td>" . $record[2] . "</td>";
+                echo "</tr>";
+            }
 		}
-	}
-	
-	$html = file_get_contents($url);
-	//echo $html;
-	$dom = new DOMDocument();
-	@$dom->loadHTML($html);
-	$dom->preserveWhiteSpace = false;
-	
-	$tables = $dom->getElementsByTagName('table');
-	
-	$count = 0;
-	foreach ($tables as $table) {
-		$tds = $table->getElementsByTagName('td');
-		$i = 0;
-		foreach ($tds as $td) {
-			$i++;
-			switch ($i) {
-				case 1:
-					echo "<tr>";
-					echo "<th scope='row'>" . ($count + 1) . "</th>";
-					break;
-				case 2:
-					$country_name = trim($td->nodeValue);
-					echo "<td>" . $country_name . "</td>";
-					break;
-				case 3:
-					$population = str_replace(',', '', trim($td->nodeValue));
-					echo "<td>" . $population . "</td>";
-					echo "</tr>";
-					break;
-				case 6:
-					$density = str_replace(',', '', trim($td->nodeValue));
-					break;
-				case 7:
-					$land_area = str_replace(',', '', trim($td->nodeValue));
-					
-					$insert_sql = 'INSERT INTO populations(country_name, population, density, land_area) VALUES("%s","%s","%s","%s")';
-					$SQL = sprintf($insert_sql, $country_name, $population, $density, $land_area);
-					$result = mysqli_query($conn, $SQL);
-					break;
-				default: break;
-			}
-			
-			if($i%12 == 0) {
-				$i = 0;
-				$count++;
-			}
-		}
-		
-		if($count == 233) {
-			//break;
-		}
+
+		echo '<script>document.getElementsByClassName("status")[0].innerText = "資料載入完成，載入的資料共 '. mysqli_num_rows($quary_result) . ' 筆";</script>';
+	} else {
+		echo "無法連接資料庫 {$dbname}，錯誤訊息 :<br/>" . mysqli_connect_error();
 	}
 	
 	mysqli_close($conn);
-	echo '<script>document.getElementsByClassName("status")[0].innerText = "資料載入完成，載入的資料共 '. $count . ' 筆";</script>';
 ?>
 				</tbody>
 			</table>
