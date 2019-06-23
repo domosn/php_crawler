@@ -1,2 +1,3 @@
 # php_crawler
-php ez crawler
+
+It can be used to record general web table.
